@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard | Admin Panel</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+  <aside class="sidebar">
+    <h2>Admin Panel</h2>
+    <nav>
+      <a class="active">Dashboard</a>
+      <a>Usuarios</a>
+      <a>Reportes</a>
+      <a>Configuración</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <h1>Dashboard General</h1>
+
+    <!-- STATS -->
+    <section class="stats fade-in">
+      <div class="stat-card">
+        <h3 id="statUsers">0</h3>
+        <p>Usuarios activos</p>
+      </div>
+
+      <div class="stat-card">
+        <h3 id="statSales">0</h3>
+        <p>Ventas del mes</p>
+      </div>
+
+      <div class="stat-card">
+        <h3 id="statAlerts">0</h3>
+        <p>Alertas del sistema</p>
+      </div>
+    </section>
+
+    <!-- GRAPH -->
+    <section class="chart-box fade-in">
+      <h2>Actividad mensual</h2>
+      <canvas id="activityChart"></canvas>
+    </section>
+
+    <!-- TABLE -->
+    <section class="table-section fade-in">
+      <h2>Usuarios</h2>
+
+      <div class="filters">
+        <input id="searchInput" type="text" placeholder="Buscar usuario..." />
+        <select id="roleFilter">
+          <option value="">Todos los roles</option>
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
+        </select>
+
+        <!-- Botón Exportar -->
+        <button id="exportBtn" class="export-btn">Exportar CSV</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Rol</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody"></tbody>
+      </table>
+
+    </section>
+
+  </main>
+
+  <script src="libs/chart.min.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
