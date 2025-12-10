@@ -1,85 +1,210 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard | Admin Panel</title>
+  <title>Dashboard | Ventas</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
+  <div class="app">
+    <aside class="sidebar">
+      <h2>Panel de Ventas</h2>
+      <nav class="nav">
+        <button class="nav-link active" data-view="dashboard">Dashboard</button>
+        <button class="nav-link" data-view="clients">Clientes</button>
+        <button class="nav-link" data-view="reports">Reportes</button>
+        <button class="nav-link" data-view="settings">Configuración</button>
+        <button class="nav-link nav-logout" data-action="logout">Cerrar sesión</button>
+      </nav>
+    </aside>
 
-  <aside class="sidebar">
-    <h2>Admin Panel</h2>
-    <nav>
-      <a class="active">Dashboard</a>
-      <a>Usuarios</a>
-      <a>Reportes</a>
-      <a>Configuración</a>
-    </nav>
-  </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-title">
+          <h1 id="pageTitle">Dashboard de Ventas</h1>
+          <p class="subtitle" id="pageSubtitle">Vista general de ingresos, estado de cobros y ventas recientes.</p>
+        </div>
+      </header>
 
-  <main class="main">
+      <!-- VIEW: DASHBOARD -->
+      <section id="view-dashboard" class="view active">
+        <section class="stats fade-in">
+          <div class="stat-card">
+            <h3 id="statSalesCount">0</h3>
+            <p>Ventas del mes</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="statRevenue">0</h3>
+            <p>Ingresos totales</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="statPending">0</h3>
+            <p>Pagos pendientes</p>
+          </div>
+        </section>
 
-    <h1>Dashboard General</h1>
+        <section class="chart-box fade-in">
+          <div class="chart-header">
+            <h2>Ingresos mensuales</h2>
+            <div class="chip">Proyección: histórica (simulada)</div>
+          </div>
+          <canvas id="activityChart"></canvas>
+        </section>
 
-    <!-- STATS -->
-    <section class="stats fade-in">
-      <div class="stat-card">
-        <h3 id="statUsers">0</h3>
-        <p>Usuarios activos</p>
-      </div>
+        <section class="table-section fade-in">
+          <div class="section-head">
+            <h2>Listado de ventas</h2>
+            <div class="section-actions">
+              <button id="exportBtn" class="btn btn-primary">Exportar CSV</button>
+            </div>
+          </div>
 
-      <div class="stat-card">
-        <h3 id="statSales">0</h3>
-        <p>Ventas del mes</p>
-      </div>
+          <div class="filters">
+            <input id="searchInput" type="text" placeholder="Buscar cliente..." />
+            <select id="statusFilter">
+              <option value="">Todos los estados</option>
+              <option value="pagado">Pagado</option>
+              <option value="pendiente">Pendiente</option>
+            </select>
+          </div>
 
-      <div class="stat-card">
-        <h3 id="statAlerts">0</h3>
-        <p>Alertas del sistema</p>
-      </div>
-    </section>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Producto</th>
+                  <th>Monto</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="salesTableBody"></tbody>
+            </table>
+          </div>
 
-    <!-- GRAPH -->
-    <section class="chart-box fade-in">
-      <h2>Actividad mensual</h2>
-      <canvas id="activityChart"></canvas>
-    </section>
+          <div class="pagination">
+            <button id="prevPage" class="btn btn-ghost" type="button">Anterior</button>
+            <span id="pageLabel">Página 1 / 1</span>
+            <button id="nextPage" class="btn btn-ghost" type="button">Siguiente</button>
+          </div>
+        </section>
+      </section>
 
-    <!-- TABLE -->
-    <section class="table-section fade-in">
-      <h2>Usuarios</h2>
+      <!-- VIEW: CLIENTES -->
+      <section id="view-clients" class="view">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Clientes</h2>
+            <p class="muted">Listado básico de clientes (simulado) para demostrar navegación y tablas.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Segmento</th>
+                  <th>Ciudad</th>
+                  <th>Última compra</th>
+                </tr>
+              </thead>
+              <tbody id="clientsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
 
-      <div class="filters">
-        <input id="searchInput" type="text" placeholder="Buscar usuario..." />
-        <select id="roleFilter">
-          <option value="">Todos los roles</option>
-          <option value="admin">Admin</option>
-          <option value="user">User</option>
-        </select>
+      <!-- VIEW: REPORTES -->
+      <section id="view-reports" class="view">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Reportes</h2>
+            <p class="muted">Ejemplos de reportes listos para ampliar (ventas por producto, por canal, etc.).</p>
+          </div>
+          <div class="report-grid">
+            <div class="report-card">
+              <h3>Ventas por producto</h3>
+              <p>Top productos y cantidad vendida (mock).</p>
+              <button class="btn btn-primary" data-report="productos" type="button">Ver</button>
+            </div>
+            <div class="report-card">
+              <h3>Pagos pendientes</h3>
+              <p>Clientes con facturas abiertas (mock).</p>
+              <button class="btn btn-primary" data-report="pendientes" type="button">Ver</button>
+            </div>
+            <div class="report-card">
+              <h3>Rendimiento por vendedor</h3>
+              <p>Comparativa por responsable (mock).</p>
+              <button class="btn btn-primary" data-report="vendedores" type="button">Ver</button>
+            </div>
+          </div>
+        </section>
+      </section>
 
-        <!-- Botón Exportar -->
-        <button id="exportBtn" class="export-btn">Exportar CSV</button>
-      </div>
+      <!-- VIEW: SETTINGS -->
+      <section id="view-settings" class="view">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Configuración</h2>
+            <p class="muted">Ajustes de demostración (sin persistencia real): tema y formato de exportación.</p>
+          </div>
+          <div class="settings-grid">
+            <div class="setting">
+              <label class="field-label" for="themeSelect">Tema</label>
+              <select id="themeSelect">
+                <option value="light" selected>Claro</option>
+                <option value="dark">Oscuro</option>
+              </select>
+            </div>
+            <div class="setting">
+              <label class="field-label" for="currency">Moneda</label>
+              <select id="currency">
+                <option value="$" selected>$ (USD)</option>
+                <option value="€">€ (EUR)</option>
+                <option value="AR$">AR$ (ARS)</option>
+              </select>
+            </div>
+          </div>
+          <div class="hint">Los cambios se aplican en la vista actual (demo).</div>
+        </section>
+      </section>
+    </main>
+  </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Rol</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody id="userTableBody"></tbody>
-      </table>
+  <!-- MODAL DE DETALLE -->
+  <div id="detailModal" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-box fade-in">
+      <h2>Detalle de venta</h2>
 
-    </section>
+      <p><strong>ID de venta:</strong> <span id="mId"></span></p>
+      <p><strong>Cliente:</strong> <span id="mCliente"></span></p>
+      <p><strong>Producto:</strong> <span id="mProducto"></span></p>
+      <p><strong>Cantidad:</strong> <span id="mCantidad"></span></p>
+      <p><strong>Método de pago:</strong> <span id="mMetodoPago"></span></p>
+      <p><strong>Fecha:</strong> <span id="mFecha"></span></p>
 
-  </main>
+      <hr />
+
+      <p><strong>Subtotal:</strong> <span id="mSubtotal"></span></p>
+      <p><strong>IVA (21%):</strong> <span id="mIva"></span></p>
+      <p><strong>Total:</strong> <span id="mTotal"></span></p>
+
+      <hr />
+
+      <p><strong>Estado:</strong> <span id="mEstado"></span></p>
+      <p><strong>Vendedor:</strong> <span id="mVendedor"></span></p>
+      <p><strong>Observaciones:</strong> <span id="mObs"></span></p>
+      <p><strong>Comprobante:</strong> <span id="mComp"></span></p>
+
+      <button id="closeModal" class="btn btn-ghost">Cerrar</button>
+    </div>
+  </div>
 
   <script src="libs/chart.min.js"></script>
   <script src="app.js"></script>
-
 </body>
 </html>

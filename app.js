@@ -1,133 +1,297 @@
-if (!localStorage.getItem("logged")) {
-  window.location.href = "login.html";
-}
-// --------------------
-// 1. Estadísticas falsas (simulación)
-// --------------------
-document.getElementById("statUsers").textContent = 128;
-document.getElementById("statSales").textContent = 342;
-document.getElementById("statAlerts").textContent = 5;
+// app.js
+// ----------------------------------------
+// 0. Verificación de sesión (completa al cargar el DOM)
+// ----------------------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  if (!localStorage.getItem("logged")) {
+    window.location.href = "login.html";
+    return;
+  }
 
-// --------------------
-// 2. Gráfico de actividad (Chart.js)
-// --------------------
-const ctx = document.getElementById("activityChart").getContext("2d");
+  // ----------------------------
+  // 1) Datos simulados (ventas + clientes)
+  // ----------------------------
+  const metodosPago = ["Efectivo", "Débito", "Crédito", "Transferencia"];
+  const vendedores = ["Juan Pérez", "Ana López", "Marcos Díaz", "Julia Soto"];
 
-new Chart(ctx, {
-  type: "line",
-  data: {
-    labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun"],
-    datasets: [
-      {
-        label: "Actividad",
-        data: [10, 25, 18, 40, 32, 50],
-        borderWidth: 2,
-        tension: 0.3,
-      },
-    ],
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: { display: false },
+  function randomDate() {
+    const start = new Date(2024, 0, 1);
+    const end = new Date(2024, 11, 31);
+    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()))
+      .toISOString()
+      .split("T")[0];
+  }
+
+  const ventas = Array.from({ length: 32 }, (_, i) => {
+    const cantidad = Math.floor(Math.random() * 4) + 1;
+    const precioUnit = Math.floor(Math.random() * 900) + 100;
+    const subtotal = cantidad * precioUnit;
+    const iva = Math.round(subtotal * 0.21);
+    const total = subtotal + iva;
+
+    return {
+      id: i + 1001,
+      cliente: `Cliente ${i + 1}`,
+      producto: ["Laptop", "Mouse", "Teclado", "Monitor", "Impresora"][Math.floor(Math.random() * 5)],
+      cantidad,
+      subtotal,
+      iva,
+      total,
+      monto: total,
+      fecha: randomDate(),
+      estado: Math.random() > 0.25 ? "pagado" : "pendiente",
+      metodoPago: metodosPago[Math.floor(Math.random() * metodosPago.length)],
+      vendedor: vendedores[Math.floor(Math.random() * vendedores.length)],
+      observaciones: "Sin observaciones",
+      comprobante: `CMP-${10000 + i}`
+    };
+  });
+
+  const clientes = Array.from({ length: 12 }, (_, i) => ({
+    nombre: `Cliente ${i + 1}`,
+    segmento: ["Retail", "PyME", "Corporativo"][i % 3],
+    ciudad: ["Buenos Aires", "Córdoba", "Rosario", "Mendoza"][i % 4],
+    ultima: randomDate()
+  }));
+
+  // ----------------------------
+  // 2) Estado global de tabla (filtros + paginación)
+  // ----------------------------
+  const PAGE_SIZE = 6;
+  let currentPage = 1;
+  let filteredVentas = ventas.slice();
+
+  // ----------------------------
+  // 3) Helpers UI (seguridad de querySelector)
+  // ----------------------------
+  const $ = (id) => document.getElementById(id);
+
+  // ----------------------------
+  // 4) Estadísticas del dashboard (ventas)
+  // ----------------------------
+  $("statSalesCount").textContent = ventas.length;
+
+  const ingresosTotales = ventas
+    .filter(v => v.estado === "pagado")
+    .reduce((sum, v) => sum + v.total, 0);
+
+  $("statRevenue").textContent = `$${ingresosTotales}`;
+  $("statPending").textContent = ventas.filter(v => v.estado === "pendiente").length;
+
+  // ----------------------------
+  // 5) Gráfico (ingresos por mes)
+  // ----------------------------
+  const ctx = $("activityChart").getContext("2d");
+  const monthlyRevenue = Array(12).fill(0);
+
+  ventas.forEach(v => {
+    const m = new Date(v.fecha).getMonth();
+    if (v.estado === "pagado") monthlyRevenue[m] += v.total;
+  });
+
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+      datasets: [{ label: "Ingresos", data: monthlyRevenue, borderWidth: 1 }]
     },
-  },
-});
-
-// --------------------
-// 3. Datos de ejemplo para la tabla
-// --------------------
-function randomStatus() {
-  return Math.random() > 0.2 ? "activo" : "inactivo";
-}
-
-function randomRole() {
-  return Math.random() > 0.7 ? "admin" : "user";
-}
-
-const users = Array.from({ length: 20 }, (_, i) => ({
-  name: `Usuario ${i + 1}`,
-  role: randomRole(),
-  status: randomStatus(),
-}));
-
-
-// --------------------
-// 4. Renderizar tabla
-// --------------------
-function renderTable(data) {
-  const tbody = document.getElementById("userTableBody");
-  tbody.innerHTML = "";
-
-  data.forEach((u) => {
-    const tr = document.createElement("tr");
-
-    tr.innerHTML = `
-      <td>${u.name}</td>
-      <td>${u.role}</td>
-      <td>${u.status}</td>
-    `;
-
-    tbody.appendChild(tr);
+    options: { responsive: true, plugins: { legend: { display: false } } }
   });
-}
 
-renderTable(users);
+  // ----------------------------
+  // 6) Render tabla ventas (con paginación)
+  // ----------------------------
+  function renderSalesTable() {
+    const tbody = $("salesTableBody");
+    tbody.innerHTML = "";
 
-// --------------------
-// 5. Buscador
-// --------------------
-document.getElementById("searchInput").addEventListener("input", (e) => {
-  const text = e.target.value.toLowerCase();
-  filterTable(text, document.getElementById("roleFilter").value);
-});
+    const totalPages = Math.max(1, Math.ceil(filteredVentas.length / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
 
-// --------------------
-// 6. Filtro por rol
-// --------------------
-document.getElementById("roleFilter").addEventListener("change", (e) => {
-  const role = e.target.value;
-  filterTable(document.getElementById("searchInput").value.toLowerCase(), role);
-});
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageItems = filteredVentas.slice(start, start + PAGE_SIZE);
 
-// --------------------
-// 7. Función combinada para filtros
-// --------------------
-function filterTable(search, role) {
-  let filtered = users;
+    pageItems.forEach(v => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${v.id}</td>
+        <td>${v.cliente}</td>
+        <td>${v.producto}</td>
+        <td>$${v.total}</td>
+        <td>${v.fecha}</td>
+        <td>${v.estado}</td>
+      `;
+      tr.addEventListener("click", () => openModal(v));
+      tbody.appendChild(tr);
+    });
 
-  if (search) {
-    filtered = filtered.filter((u) =>
-      u.name.toLowerCase().includes(search)
+    $("pageLabel").textContent = `Página ${currentPage} / ${totalPages}`;
+  }
+
+  // ----------------------------
+  // 7) Filtros (buscador + estado)
+  // ----------------------------
+  function applyFilters() {
+    const search = $("searchInput").value.toLowerCase();
+    const status = $("statusFilter").value;
+
+    filteredVentas = ventas.filter(v =>
+      v.cliente.toLowerCase().includes(search) &&
+      (status ? v.estado === status : true)
     );
+
+    currentPage = 1;
+    renderSalesTable();
   }
 
-  if (role) {
-    filtered = filtered.filter((u) => u.role === role);
-  }
+  $("searchInput").addEventListener("input", applyFilters);
+  $("statusFilter").addEventListener("change", applyFilters);
 
-  renderTable(filtered);
-}
-document.getElementById("exportBtn").addEventListener("click", () => {
-  const rows = [["Nombre", "Rol", "Estado"]];
+  // ----------------------------
+  // 8) Export CSV (sobre el conjunto filtrado)
+  // ----------------------------
+  $("exportBtn").addEventListener("click", () => {
+    const rows = [["ID","Cliente","Producto","Cantidad","Subtotal","IVA","Total","Fecha","Estado","Método Pago","Vendedor","Comprobante"]];
+    filteredVentas.forEach(v => {
+      rows.push([v.id, v.cliente, v.producto, v.cantidad, v.subtotal, v.iva, v.total, v.fecha, v.estado, v.metodoPago, v.vendedor, v.comprobante]);
+    });
 
-  users.forEach(u => {
-    rows.push([u.name, u.role, u.status]);
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ventas.csv";
+    a.click();
+
+    URL.revokeObjectURL(url);
   });
 
-  const csvContent = rows.map(r => r.join(",")).join("\n");
+  // ----------------------------
+  // 9) Paginación botones
+  // ----------------------------
+  $("prevPage").addEventListener("click", () => {
+    if (currentPage > 1) { currentPage--; renderSalesTable(); }
+  });
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
+  $("nextPage").addEventListener("click", () => {
+    const totalPages = Math.ceil(filteredVentas.length / PAGE_SIZE);
+    if (currentPage < totalPages) { currentPage++; renderSalesTable(); }
+  });
 
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "usuarios.csv";
-  link.click();
+  // ----------------------------
+  // 10) Modal de detalle (abrir/cerrar)
+  // ----------------------------
+  const modal = $("detailModal");
+
+  function openModal(v) {
+    $("mId").textContent = v.id;
+    $("mCliente").textContent = v.cliente;
+    $("mProducto").textContent = v.producto;
+    $("mCantidad").textContent = v.cantidad;
+    $("mMetodoPago").textContent = v.metodoPago;
+    $("mFecha").textContent = v.fecha;
+
+    $("mSubtotal").textContent = `$${v.subtotal}`;
+    $("mIva").textContent = `$${v.iva}`;
+    $("mTotal").textContent = `$${v.total}`;
+
+    $("mEstado").textContent = v.estado;
+    $("mVendedor").textContent = v.vendedor;
+    $("mObs").textContent = v.observaciones;
+    $("mComp").textContent = v.comprobante;
+
+    modal.style.display = "flex";
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  $("closeModal").addEventListener("click", () => closeModal());
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modal.style.display === "flex") closeModal(); });
+
+  function closeModal() {
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  // ----------------------------
+  // 11) Navegación del sidebar (vistas)
+  // ----------------------------
+  const navButtons = Array.from(document.querySelectorAll(".nav-link[data-view]"));
+  const views = {
+    dashboard: $("view-dashboard"),
+    clients: $("view-clients"),
+    reports: $("view-reports"),
+    settings: $("view-settings")
+  };
+
+  function setView(viewKey) {
+    // active nav
+    navButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.view === viewKey));
+
+    // show view
+    Object.keys(views).forEach(k => views[k].classList.toggle("active", k === viewKey));
+
+    // titles (simple mapping)
+    const titleMap = {
+      dashboard: ["Dashboard de Ventas", "Vista general de ingresos, estado de cobros y ventas recientes."],
+      clients: ["Clientes", "Listado de clientes (simulado) para navegación y tablas."],
+      reports: ["Reportes", "Módulo de reportes (mock) para ampliar con fuentes reales."],
+      settings: ["Configuración", "Preferencias de visualización (demo)."]
+    };
+    const [t, s] = titleMap[viewKey] || titleMap.dashboard;
+    $("pageTitle").textContent = t;
+    $("pageSubtitle").textContent = s;
+  }
+
+  navButtons.forEach(btn => {
+    btn.addEventListener("click", () => setView(btn.dataset.view));
+  });
+
+  // logout action
+  document.querySelector(".nav-link[data-action='logout']")?.addEventListener("click", () => {
+    localStorage.removeItem("logged");
+    window.location.href = "login.html";
+  });
+
+  // ----------------------------
+  // 12) Clientes (tabla simple)
+  // ----------------------------
+  function renderClients() {
+    const tbody = $("clientsTableBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    clientes.forEach(c => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${c.nombre}</td>
+        <td>${c.segmento}</td>
+        <td>${c.ciudad}</td>
+        <td>${c.ultima}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ----------------------------
+  // 13) Settings (demo: tema + moneda)
+  // ----------------------------
+  $("themeSelect")?.addEventListener("change", (e) => {
+    document.documentElement.style.setProperty("--bg", e.target.value === "dark" ? "#0b1020" : "#f5f6f8");
+    document.documentElement.style.setProperty("--panel", e.target.value === "dark" ? "#111827" : "#ffffff");
+    document.documentElement.style.setProperty("--ink", e.target.value === "dark" ? "#f3f4f6" : "#1f2937");
+    document.documentElement.style.setProperty("--muted", e.target.value === "dark" ? "#cbd5e1" : "#6b7280");
+  });
+
+  $("currency")?.addEventListener("change", () => {
+    // Nota: Para demo no reescribimos todos los montos en pantalla; el selector queda listo para integrarlo con una capa de datos real.
+  });
+
+  // ----------------------------
+  // 14) Inicialización final
+  // ----------------------------
+  renderSalesTable();
+  renderClients();
+  setView("dashboard");
 });
-<a onclick="logout()">Cerrar sesión</a>
-function logout() {
-  localStorage.removeItem("logged");
-  window.location.href = "login.html";
-}
-
