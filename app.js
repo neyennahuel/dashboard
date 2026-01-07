@@ -60,23 +60,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const PAGE_SIZE = 6;
   let currentPage = 1;
   let filteredVentas = ventas.slice();
+  let currencySymbol = "$";
+  let activeSale = null;
 
   // ----------------------------
   // 3) Helpers UI (seguridad de querySelector)
   // ----------------------------
   const $ = (id) => document.getElementById(id);
+  const formatMoney = (value) => `${currencySymbol}${value.toLocaleString("es-AR")}`;
 
   // ----------------------------
   // 4) Estadísticas del dashboard (ventas)
   // ----------------------------
-  $("statSalesCount").textContent = ventas.length;
+  function updateStats() {
+    $("statSalesCount").textContent = ventas.length.toLocaleString("es-AR");
 
-  const ingresosTotales = ventas
-    .filter(v => v.estado === "pagado")
-    .reduce((sum, v) => sum + v.total, 0);
+    const ingresosTotales = ventas
+      .filter(v => v.estado === "pagado")
+      .reduce((sum, v) => sum + v.total, 0);
 
-  $("statRevenue").textContent = `$${ingresosTotales}`;
-  $("statPending").textContent = ventas.filter(v => v.estado === "pendiente").length;
+    $("statRevenue").textContent = formatMoney(ingresosTotales);
+    $("statPending").textContent = ventas.filter(v => v.estado === "pendiente").length;
+  }
 
   // ----------------------------
   // 5) Gráfico (ingresos por mes)
@@ -93,9 +98,23 @@ document.addEventListener("DOMContentLoaded", () => {
     type: "bar",
     data: {
       labels: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
-      datasets: [{ label: "Ingresos", data: monthlyRevenue, borderWidth: 1 }]
+      datasets: [{
+        label: "Ingresos",
+        data: monthlyRevenue,
+        borderWidth: 1,
+        borderRadius: 8,
+        backgroundColor: "rgba(255, 107, 44, 0.65)",
+        hoverBackgroundColor: "rgba(255, 107, 44, 0.85)"
+      }]
     },
-    options: { responsive: true, plugins: { legend: { display: false } } }
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: "rgba(15, 23, 42, 0.08)" } }
+      }
+    }
   });
 
   // ----------------------------
@@ -113,13 +132,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     pageItems.forEach(v => {
       const tr = document.createElement("tr");
+      const statusLabel = v.estado === "pagado" ? "Pagado" : "Pendiente";
+      const statusClass = v.estado === "pagado" ? "status--ok" : "status--warn";
       tr.innerHTML = `
         <td>${v.id}</td>
         <td>${v.cliente}</td>
         <td>${v.producto}</td>
-        <td>$${v.total}</td>
+        <td>${formatMoney(v.total)}</td>
         <td>${v.fecha}</td>
-        <td>${v.estado}</td>
+        <td><span class="status ${statusClass}">${statusLabel}</span></td>
       `;
       tr.addEventListener("click", () => openModal(v));
       tbody.appendChild(tr);
@@ -186,6 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const modal = $("detailModal");
 
   function openModal(v) {
+    activeSale = v;
     $("mId").textContent = v.id;
     $("mCliente").textContent = v.cliente;
     $("mProducto").textContent = v.producto;
@@ -193,9 +215,9 @@ document.addEventListener("DOMContentLoaded", () => {
     $("mMetodoPago").textContent = v.metodoPago;
     $("mFecha").textContent = v.fecha;
 
-    $("mSubtotal").textContent = `$${v.subtotal}`;
-    $("mIva").textContent = `$${v.iva}`;
-    $("mTotal").textContent = `$${v.total}`;
+    $("mSubtotal").textContent = formatMoney(v.subtotal);
+    $("mIva").textContent = formatMoney(v.iva);
+    $("mTotal").textContent = formatMoney(v.total);
 
     $("mEstado").textContent = v.estado;
     $("mVendedor").textContent = v.vendedor;
@@ -213,6 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeModal() {
     modal.style.display = "none";
     modal.setAttribute("aria-hidden", "true");
+    activeSale = null;
   }
 
   // ----------------------------
@@ -278,14 +301,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // 13) Settings (demo: tema + moneda)
   // ----------------------------
   $("themeSelect")?.addEventListener("change", (e) => {
-    document.documentElement.style.setProperty("--bg", e.target.value === "dark" ? "#0b1020" : "#f5f6f8");
-    document.documentElement.style.setProperty("--panel", e.target.value === "dark" ? "#111827" : "#ffffff");
-    document.documentElement.style.setProperty("--ink", e.target.value === "dark" ? "#f3f4f6" : "#1f2937");
-    document.documentElement.style.setProperty("--muted", e.target.value === "dark" ? "#cbd5e1" : "#6b7280");
+    const isDark = e.target.value === "dark";
+    document.documentElement.style.setProperty("--bg", isDark ? "#0b1020" : "#f2f4f8");
+    document.documentElement.style.setProperty("--panel", isDark ? "#111827" : "#ffffff");
+    document.documentElement.style.setProperty("--panel-2", isDark ? "#0f172a" : "#f8fafc");
+    document.documentElement.style.setProperty("--ink", isDark ? "#f3f4f6" : "#0f172a");
+    document.documentElement.style.setProperty("--muted", isDark ? "#cbd5e1" : "#556070");
+    document.documentElement.style.setProperty("--border", isDark ? "rgba(148, 163, 184, 0.2)" : "rgba(15, 23, 42, 0.08)");
   });
 
-  $("currency")?.addEventListener("change", () => {
-    // Nota: Para demo no reescribimos todos los montos en pantalla; el selector queda listo para integrarlo con una capa de datos real.
+  $("currency")?.addEventListener("change", (e) => {
+    currencySymbol = e.target.value || "$";
+    renderSalesTable();
+    updateStats();
+    if (activeSale) openModal(activeSale);
   });
 
   // ----------------------------
@@ -293,5 +322,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // ----------------------------
   renderSalesTable();
   renderClients();
+  updateStats();
   setView("dashboard");
 });

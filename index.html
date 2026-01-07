@@ -11,7 +11,13 @@
 <body>
   <div class="app">
     <aside class="sidebar">
-      <h2>Panel de Ventas</h2>
+      <div class="brand">
+        <div class="brand-mark">PV</div>
+        <div>
+          <p class="brand-title">Panel de Ventas</p>
+          <p class="brand-subtitle">Comercial</p>
+        </div>
+      </div>
       <nav class="nav">
         <button class="nav-link active" data-view="dashboard">Dashboard</button>
         <button class="nav-link" data-view="clients">Clientes</button>
@@ -19,6 +25,15 @@
         <button class="nav-link" data-view="settings">Configuración</button>
         <button class="nav-link nav-logout" data-action="logout">Cerrar sesión</button>
       </nav>
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="avatar">AD</div>
+          <div>
+            <p class="user-name">Admin</p>
+            <p class="user-role">Equipo Ventas</p>
+          </div>
+        </div>
+      </div>
     </aside>
 
     <main class="main">
@@ -26,6 +41,10 @@
         <div class="topbar-title">
           <h1 id="pageTitle">Dashboard de Ventas</h1>
           <p class="subtitle" id="pageSubtitle">Vista general de ingresos, estado de cobros y ventas recientes.</p>
+        </div>
+        <div class="topbar-actions">
+          <div class="kpi-chip">Actualizado hace 2 min</div>
+          <button class="btn btn-primary">Nueva venta</button>
         </div>
       </header>
 

@@ -1,6 +1,5 @@
 // login.js
 document.addEventListener("DOMContentLoaded", () => {
-
   // Si ya está logueado, enviarlo directo al panel
   if (localStorage.getItem("logged") === "true") {
     window.location.href = "index.html";
